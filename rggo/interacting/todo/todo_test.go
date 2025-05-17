@@ -18,6 +18,7 @@ func TestAdd(t *testing.T) {
 	}
 }
 
+
 func TestComplete(t *testing.T) {
 	var l todo.List
 	task := "new task"
@@ -84,7 +85,7 @@ func TestSaveGet(t *testing.T) {
 		t.Fatalf("error when getting file: %s", err)
 	}
 
-    if l1[0].Task != l2[0].Task {
-        t.Fatalf("task %s should match %s task", l2[0].Task, l1[0].Task)
-    }
+	if l1[0].Task != l2[0].Task {
+		t.Fatalf("task %s should match %s task", l2[0].Task, l1[0].Task)
+	}
 }
