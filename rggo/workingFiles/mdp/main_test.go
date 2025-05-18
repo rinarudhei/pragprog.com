@@ -13,6 +13,14 @@ const (
 	goldenFile = "./testdata/test1.md.html"
 )
 
+func TestMain(m *testing.M) {
+	os.Setenv("HTML_TEMPLATE_ENV", "")
+	code := m.Run()
+	os.Unsetenv("HTML_TEMPLATE_ENV")
+
+	os.Exit(code)
+}
+
 func TestParseContent(t *testing.T) {
 	b, err := os.ReadFile(inputFile)
 	if err != nil {
@@ -23,10 +31,10 @@ func TestParseContent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	parsed, err := parseContent(b, "")
-    if err != nil {
-        t.Fatal(err)
-    }
+	parsed, err := parseContent(b, "", inputFile)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !bytes.Equal(parsed, gold) {
 		t.Logf("actual:\n %s\n", parsed)

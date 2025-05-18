@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"flag"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -24,6 +26,7 @@ const (
 <title>{{ .Title }}</title>
 </head>
 <body>
+<h1>filename: {{ .Filename}}</h1>
 {{ .Body }}
 </body>
 </html>
@@ -31,21 +34,33 @@ const (
 )
 
 type content struct {
-	Title string
-	Body  template.HTML
+	Title    string
+	Body     template.HTML
+	Filename string
 }
 
 func main() {
 	filename := flag.String("file", "", "Markdown file to preview")
 	skipPreview := flag.Bool("s", false, "Skip preview the html content")
-    tFname := flag.String("t", "", "Alternate template name")
+	tFname := flag.String("t", "", "Alternate template name")
+	interactive := flag.Bool("i", false, "Use interactive mode to add user input")
 	flag.Parse()
 
-	if *filename == "" {
+	if *filename == "" && !*interactive {
 		flag.Usage()
 		os.Exit(1)
 	}
-
+	if *filename == "" && *interactive {
+		fmt.Println("enter markdown file name:")
+		reader := bufio.NewReader(os.Stdin)
+		text, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Printf("processing markdown file: %s", text)
+		*filename = strings.TrimSpace(text)
+	}
 	if err := run(*filename, *tFname, os.Stdout, *skipPreview); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -59,15 +74,17 @@ func run(filename string, tFName string, out io.Writer, skipPreview bool) error 
 		return fmt.Errorf("run: %w", err)
 	}
 
-	htmlData, err := parseContent(b, tFName)
-    if err != nil {
-        return fmt.Errorf("run: %w", err)
-    }
+	htmlData, err := parseContent(b, tFName, filename)
+	if err != nil {
+		return fmt.Errorf("run: %w", err)
+	}
 	tmpFile, err := os.CreateTemp("./", "mdp*.html")
 	if err != nil {
 		return fmt.Errorf("run: %w", err)
 	}
-	tmpFile.Close()
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("run: %w", err)
+	}
 	outName := tmpFile.Name()
 	fmt.Fprintln(out, outName)
 
@@ -84,26 +101,36 @@ func run(filename string, tFName string, out io.Writer, skipPreview bool) error 
 }
 
 // Parse markdown file content into sanitized html content
-func parseContent(mdBytesData []byte, tFname string) ([]byte, error) {
+func parseContent(mdBytesData []byte, tFname string, filename string) ([]byte, error) {
 	out := blackfriday.Run(mdBytesData)
 	body := bluemonday.UGCPolicy().SanitizeBytes(out)
 	tmp, err := template.New("mdp").Parse(defaultTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("parseContent: %w", err)
 	}
-    if tFname != "" {
-        tmp, err = template.New("mdp").ParseFiles(tFname)
-    }
-	content := content{
-		Title: "Markdown Preview Tool",
-		Body:  template.HTML(body),
+	if tFname != "" {
+		tmp, err = template.ParseFiles(tFname)
+		if err != nil {
+			return nil, fmt.Errorf("parseContent: parse files: %w", err)
+		}
+	} else if os.Getenv("HTML_TEMPLATE_ENV") != "" {
+		tFname = os.Getenv("HTML_TEMPLATE_ENV")
+		tmp, err = template.ParseFiles(tFname)
+		if err != nil {
+			return nil, fmt.Errorf("parseContent: parse files from env: %w", err)
+		}
 	}
-    var buf bytes.Buffer
-    if err := tmp.Execute(&buf, content); err != nil {
-        return nil, fmt.Errorf("parseContent: %w", err)
-    }
+	content := content{
+		Title:    "Markdown Preview Tool",
+		Body:     template.HTML(body),
+		Filename: filename,
+	}
+	var buf bytes.Buffer
+	if err := tmp.Execute(&buf, content); err != nil {
+		return nil, fmt.Errorf("parseContent: execute: %w", err)
+	}
 
-   return buf.Bytes(), nil
+	return buf.Bytes(), nil
 }
 
 // Generate html file output
@@ -142,7 +169,7 @@ func preview(fname string) error {
 		return fmt.Errorf("preview: %w", err)
 	}
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	return nil
 }
