@@ -29,7 +29,7 @@ func main() {
 	archive := flag.String("archive", "", "Archive directory")
 	flag.Parse()
 
-	var f = os.Stdout
+	f := os.Stdout
 	var err error
 
 	if *logFile != "" {
