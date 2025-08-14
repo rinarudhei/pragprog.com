@@ -29,7 +29,7 @@ func (s timeoutStep) execute() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, s.name, s.args...)
+	cmd := exec.CommandContext(ctx, s.exe, s.args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Dir = s.proj
