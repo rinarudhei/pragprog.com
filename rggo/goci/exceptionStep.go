@@ -30,11 +30,20 @@ func (s exceptionStep) execute() (string, error) {
 			cause: nil,
 		}
 	}
+	var errMessage string
+	isGoFmtSuccess := out.Len() == 0
+	isGoLintSuccess := out.String() == "0 issues.\n"
+	isError := !isGoFmtSuccess && !isGoLintSuccess
+	if !isGoFmtSuccess {
+		errMessage = "invalid format"
+	} else {
+		errMessage = "error linter"
+	}
 
-	if out.Len() > 0 {
+	if isError {
 		return "", &stepErr{
 			step:  s.name,
-			msg:   fmt.Sprintf("invalid format: %s", out.String()),
+			msg:   fmt.Sprintf("%s: %s", errMessage, out.String()),
 			cause: nil,
 		}
 	}

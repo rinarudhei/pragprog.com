@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -26,7 +28,7 @@ func run(proj string, out io.Writer) error {
 	if proj == "" {
 		return fmt.Errorf("project directory is required: %w", ErrValidation)
 	}
-	pipeline := make([]executer, 4)
+	pipeline := make([]executer, 6)
 	pipeline[0] = newStep(
 		"go build",
 		"go",
@@ -51,7 +53,23 @@ func run(proj string, out io.Writer) error {
 		[]string{"-l", "."},
 	)
 
-	pipeline[3] = newTimeoutStep(
+	pipeline[3] = newExceptionStep(
+		"go lint",
+		"golangci-lint",
+		"Golint: SUCCESS",
+		proj,
+		[]string{"run", "."},
+	)
+
+	pipeline[4] = newExceptionStep(
+		"go cyclo",
+		"golangci-lint",
+		"Gocyclo: SUCCESS",
+		proj,
+		[]string{"run", ".", "--enable-only", "gocyclo"},
+	)
+
+	pipeline[5] = newTimeoutStep(
 		"git push",
 		"git",
 		"Git push: SUCCESS",
@@ -60,17 +78,38 @@ func run(proj string, out io.Writer) error {
 		10*time.Second,
 	)
 
-	for _, s := range pipeline {
-		msg, err := s.execute()
-		if err != nil {
-			return err
+	sig := make(chan os.Signal, 1)
+	errCh := make(chan error)
+	doneCh := make(chan struct{})
+
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		for _, s := range pipeline {
+			msg, err := s.execute()
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			_, err = fmt.Fprintln(out, msg)
+			if err != nil {
+				errCh <- err
+				return
+			}
 		}
 
-		_, err = fmt.Fprintln(out, msg)
-		if err != nil {
+		close(doneCh)
+	}()
+
+	for {
+		select {
+		case rec := <-sig:
+			signal.Stop(sig)
+			return fmt.Errorf("%s: Exciting: %w", rec, ErrSignal)
+		case err := <-errCh:
 			return err
+		case <-doneCh:
+			return nil
 		}
 	}
-
-	return nil
 }
