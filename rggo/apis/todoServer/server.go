@@ -9,7 +9,7 @@ import (
 
 func newMux(todoFile string) http.Handler {
 	m := http.NewServeMux()
-	var mu *sync.Mutex
+	mu := &sync.Mutex{}
 
 	m.HandleFunc("/", rootHandler)
 

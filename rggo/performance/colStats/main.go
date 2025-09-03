@@ -59,7 +59,7 @@ func run(filenames []string, op string, column int, out io.Writer) error {
 		}
 	}()
 
-	for i := 0; i < runtime.NumCPU()*10; i++ {
+	for i := 0; i < runtime.NumCPU(); i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

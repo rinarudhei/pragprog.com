@@ -101,7 +101,6 @@ func deleteHandler(w http.ResponseWriter, r *http.Request, list *todo.List, id i
 }
 
 func patchHandler(w http.ResponseWriter, r *http.Request, list *todo.List, id int, todoFile string) {
-
 	queries := r.URL.Query()
 	_, ok := queries["complete"]
 	if !ok {
@@ -110,6 +109,10 @@ func patchHandler(w http.ResponseWriter, r *http.Request, list *todo.List, id in
 
 	if err := list.Complete(id); err != nil {
 		replyError(w, r, http.StatusInternalServerError, err.Error())
+	}
+
+	if err := list.Save(todoFile); err != nil {
+		replyError(w, r, http.StatusInternalServerError, "failed saving todo file")
 	}
 
 	replyTextContent(w, r, http.StatusNoContent, "")
