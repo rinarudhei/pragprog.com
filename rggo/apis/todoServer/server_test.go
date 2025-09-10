@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,6 +13,12 @@ import (
 
 	"pragprog.com/rggo/interacting/todo"
 )
+
+func TestMain(m *testing.M) {
+	log.SetOutput(io.Discard)
+	code := m.Run()
+	os.Exit(code)
+}
 
 func setupAPI(t *testing.T) (string, func()) {
 	t.Helper()
