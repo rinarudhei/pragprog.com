@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+var isActive bool
+
 // listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:          "list",
@@ -20,19 +22,31 @@ var listCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		apiRoot := viper.GetString("api-root")
-
-		return listAction(os.Stdout, apiRoot)
+		return listAction(os.Stdout, apiRoot, isActive)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(listCmd)
+
+	listCmd.Flags().BoolVarP(&isActive, "active", "a", false, "Filter list to show active tasks only")
 }
 
-func listAction(out io.Writer, apiRoot string) error {
+func listAction(out io.Writer, apiRoot string, isActive bool) error {
 	items, err := getAll(apiRoot)
 	if err != nil {
 		return err
+	}
+
+	if isActive {
+		var activeItems []item
+		for _, i := range items {
+			if !i.Done {
+				activeItems = append(activeItems, i)
+			}
+		}
+
+		return printAll(out, activeItems)
 	}
 
 	return printAll(out, items)

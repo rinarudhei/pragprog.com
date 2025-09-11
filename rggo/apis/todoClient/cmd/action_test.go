@@ -1,3 +1,5 @@
+// go: build !integration
+
 package cmd
 
 import (
@@ -51,7 +53,7 @@ func TestListAction(t *testing.T) {
 			}
 
 			var out bytes.Buffer
-			err := listAction(&out, url)
+			err := listAction(&out, url, false)
 
 			if tc.expError != nil {
 				if err == nil {
@@ -196,8 +198,8 @@ func TestCompleteAction(t *testing.T) {
 			t.Errorf("Expected method %q, got %q", expMethod, r.Method)
 		}
 
-		w.WriteHeader(testResp["completed"].Status)
-		fmt.Fprintln(w, testResp["completed"].Body)
+		w.WriteHeader(testResp["noContent"].Status)
+		fmt.Fprintln(w, testResp["noContent"].Body)
 	})
 	defer cleanup()
 
@@ -224,8 +226,8 @@ func TestDeleteAction(t *testing.T) {
 			t.Errorf("Expected method %q, got %q", expMethod, r.Method)
 		}
 
-		w.WriteHeader(testResp["deleted"].Status)
-		fmt.Fprintln(w, testResp["deleted"].Body)
+		w.WriteHeader(testResp["noContent"].Status)
+		fmt.Fprintln(w, testResp["noContent"].Body)
 	})
 	defer cleanup()
 

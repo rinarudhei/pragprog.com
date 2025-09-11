@@ -66,11 +66,7 @@ var testResp = map[string]struct {
 		Status: http.StatusCreated,
 		Body:   "",
 	},
-	"completed": {
-		Status: http.StatusNoContent,
-		Body:   "",
-	},
-	"deleted": {
+	"noContent": {
 		Status: http.StatusNoContent,
 		Body:   "",
 	},
