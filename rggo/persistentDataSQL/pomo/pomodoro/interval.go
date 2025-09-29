@@ -203,6 +203,9 @@ func (i Interval) Start(ctx context.Context, config *IntervalConfig, start, peri
 	case StateRunning:
 		return nil
 	case StateNotStarted:
+		i.StartTime = time.Now()
+		fallthrough
+	case StatePaused:
 		i.State = StateRunning
 		if err := config.repo.Update(i); err != nil {
 			return err
