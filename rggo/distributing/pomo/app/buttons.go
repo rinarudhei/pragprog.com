@@ -26,11 +26,14 @@ func newButtonSet(ctx context.Context, config *pomodoro.IntervalConfig, w *widge
 			}
 
 			w.update([]int{}, i.Category, message, "", redrawCh)
+			send_notification(message)
 		}
 
 		end := func(i pomodoro.Interval) {
 			w.update([]int{}, "", "Nothing running...", "", redrawCh)
 			s.update(redrawCh)
+			message := fmt.Sprintf("%s finished !", i.Category)
+			send_notification(message)
 		}
 
 		periodic := func(i pomodoro.Interval) {
